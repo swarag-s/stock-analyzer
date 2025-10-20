@@ -6,20 +6,11 @@
   <component name="ChangeListManager">
     <list default="true" id="febf269f-72bd-479a-a71c-43ccf2181ae4" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/App.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/App.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/api/FinnhubAPIClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/api/FinnhubAPIClient.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/model/AnalysisReport.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/model/AnalysisReport.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/model/MarketIndex.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/model/MarketIndex.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/model/Portfolio.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/model/Portfolio.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/model/Stock.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/model/Stock.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/observer/StockAlert.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/observer/StockAlert.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/observer/StockObserver.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/observer/StockObserver.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/service/AlertService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/service/AlertService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/service/PortfolioService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/service/PortfolioService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/service/ReportService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/service/ReportService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/ui/MainApp.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/ui/MainApp.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/utils/ChartUtils.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/stockanalyzer/utils/ChartUtils.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -57,17 +48,17 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;org.jetbrains.plugins.github.ui.GithubSettingsConfigurable&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0",
+    "settings.editor.selected.configurable": "project.propDebugger"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected="Application.App">
     <configuration name="App" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="com.stockanalyzer.App" />

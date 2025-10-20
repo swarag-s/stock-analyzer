@@ -34,8 +34,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import org.jfree.chart.JFreeChart;
-import org.jfree.chart.fx.ChartViewer;   // from jfreechart-fx;
+import org.jfree.chart.fx.ChartViewer;
 
 
 
@@ -107,7 +106,7 @@ public class MainApp extends Application {
         HBox menu = new HBox(10);
         menu.setPadding(new Insets(0, 0, 10, 0));
 
-        Label title = new Label("Stock Market Analyzer with Finnhub API");
+        Label title = new Label("Stock Market Analyzer");
         title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
         TextField symbolInput = new TextField();
@@ -295,6 +294,7 @@ public class MainApp extends Application {
         priceChart.setTitle("Stock Price History");
         priceChart.setLegendVisible(true);
         priceChart.setAnimated(false);
+        priceChart.setCreateSymbols(false);
 
         // Analysis controls
         HBox analysisBox = new HBox(10);
@@ -335,29 +335,44 @@ public class MainApp extends Application {
         }).start();
     }
 
-    private void addStockToWatchlist(String symbol) {
-        if (symbol == null || symbol.trim().isEmpty()) return;
+    private void addStockToWatchlist(String query) {
+        if (query == null || query.trim().isEmpty()) return;
+        final String finalQuery = query.trim();
 
         new Thread(() -> {
             try {
-                Stock stock = apiClient.getStockData(symbol.trim().toUpperCase());
+                // Search for a symbol based on the user
+                String foundSymbol = apiClient.searchForBestSymbol(finalQuery);
+                String symbolToFetch = (foundSymbol != null) ? foundSymbol : finalQuery.toUpperCase();
+
+                // Get the quote data for the determined symbol
+                Stock stock = apiClient.getStockData(symbolToFetch);
+
                 if (stock != null) {
                     Platform.runLater(() -> {
-                        watchList.add(stock);
-                        // Clear input field if needed
+                        // Check if stock is already in the list before adding
+                        boolean exists = watchList.stream().anyMatch(s -> s.getSymbol().equals(stock.getSymbol()));
+                        if (!exists) {
+                            watchList.add(stock);
+                        }
                     });
+                } else {
+                    // If getStockData returns null or fails
+                    throw new IOException("Could not retrieve quote for symbol: " + symbolToFetch);
                 }
+
             } catch (IOException e) {
                 Platform.runLater(() -> {
                     Alert alert = new Alert(Alert.AlertType.ERROR);
                     alert.setTitle("Error");
-                    alert.setHeaderText("Invalid Symbol");
-                    alert.setContentText("The stock symbol '" + symbol + "' could not be found: " + e.getMessage());
+                    alert.setHeaderText("Could Not Find Stock");
+                    alert.setContentText("No data found for '" + finalQuery + "'. Please check the company name or symbol.");
                     alert.showAndWait();
                 });
             }
         }).start();
     }
+
 
     private void refreshData() {
         new Thread(() -> {
@@ -479,6 +494,7 @@ public class MainApp extends Application {
             grid.setVgap(10);
             grid.setPadding(new Insets(20, 150, 10, 10));
 
+
             TextField priceField = new TextField();
             priceField.setPromptText("Target price");
 
@@ -489,6 +505,7 @@ public class MainApp extends Application {
             grid.add(new Label("Target Price:"), 0, 0);
             grid.add(priceField, 1, 0);
             grid.add(new Label("Alert When:"), 0, 1);
+
             grid.add(directionBox, 1, 1);
 
             dialog.getDialogPane().setContent(grid);
@@ -561,23 +578,33 @@ public class MainApp extends Application {
                     Map<String, Double> historicalData = apiClient.getHistoricalData(selected.getSymbol(), "1mo");
 
                     Platform.runLater(() -> {
-                        // Clear previous chart
+                        // 1. Clear the existing JavaFX chart data
                         priceChart.getData().clear();
 
-                        // Create JFreeChart instead of JavaFX LineChart
-                        JFreeChart jfreeChart = ChartUtils.createStockChart(selected.getSymbol(), historicalData);
+                        XYChart.Series<String, Number> series = new XYChart.Series<>();
+                        series.setName(selected.getSymbol());
 
-                        // Convert JFreeChart to JavaFX node
-                        ChartViewer chartViewer = new ChartViewer(jfreeChart);
-                        chartViewer.setPrefSize(600, 400);
+                        // 2. Sort data by date to ensure the line chart draws correctly
+                        List<String> sortedDates = new ArrayList<>(historicalData.keySet());
+                        Collections.sort(sortedDates);
 
-                        // Replace the chart in your UI
-                        VBox rightPanel = (VBox) priceChart.getParent();
-                        rightPanel.getChildren().remove(priceChart);
-                        rightPanel.getChildren().add(1, chartViewer); // Add at position 1 (after title)
+                        for (String date : sortedDates) {
+                            double price = historicalData.get(date);
 
-                        // Store reference for future updates
-                        priceChartContainer = chartViewer;
+                            // Format date for display on the axis
+                            String formattedDate;
+                            try {
+                                LocalDate localDate = LocalDate.parse(date.substring(0, 10));
+                                formattedDate = localDate.format(DateTimeFormatter.ofPattern("MMM dd"));
+                            } catch (Exception e) {
+                                formattedDate = date; // Fallback to original date
+                            }
+
+                            series.getData().add(new XYChart.Data<>(formattedDate, price));
+                        }
+
+                        // 3. Add the new series to the JavaFX chart
+                        priceChart.getData().add(series);
                     });
                 } catch (IOException e) {
                     Platform.runLater(() -> {

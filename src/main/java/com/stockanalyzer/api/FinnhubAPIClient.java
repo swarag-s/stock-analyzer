@@ -13,16 +13,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Date;
-import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
-
 
 public class FinnhubAPIClient {
-    private static final String BASE_URL = "https://finnhub.io/api/v1";
-    private static final String API_KEY = "d35dt89r01qhqkb206m0d35dt89r01qhqkb206mg"; // your API key
+    private static final String BASE_URL = "https://api.twelvedata.com";
+    private static final String API_KEY = "2c5c078817954b249392274165d2e08b"; // Twelve Data API key
 
     private OkHttpClient client;
 
@@ -30,187 +24,92 @@ public class FinnhubAPIClient {
         this.client = new OkHttpClient();
     }
 
-    public Stock getStockData(String symbol) throws IOException {
-        String url = BASE_URL + "/quote?symbol=" + symbol + "&token=" + API_KEY;
+    /**
+     * Searches for the best symbol match for a given query (e.g., "Apple" -> "AAPL").
+     * @param query The company name or symbol to search for.
+     * @return The best matching symbol as a String, or null if not found.
+     * @throws IOException If the API call fails.
+     */
+    public String searchForBestSymbol(String query) throws IOException {
+        String url = BASE_URL + "/symbol_search?symbol=" + query + "&apikey=" + API_KEY;
+        Request request = new Request.Builder().url(url).build();
 
-        Request request = new Request.Builder()
-                .url(url)
-                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                .build();
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                // Don't throw an error, just return null as search might fail legitimately
+                return null;
+            }
+
+            JSONObject json = new JSONObject(response.body().string());
+            if (json.has("data")) {
+                JSONArray data = json.getJSONArray("data");
+                if (data.length() > 0) {
+                    // Return the symbol of the first and most relevant result
+                    return data.getJSONObject(0).getString("symbol");
+                }
+            }
+        }
+        return null; // Return null if no symbol was found
+    }
+
+    /**
+     * Fetches the current quote for a specific stock symbol.
+     */
+    public Stock getStockData(String symbol) throws IOException {
+        String url = BASE_URL + "/quote?symbol=" + symbol + "&apikey=" + API_KEY;
+        Request request = new Request.Builder().url(url).build();
 
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
                 throw new IOException("Unexpected code " + response + " for symbol: " + symbol);
             }
 
-            String responseData = response.body().string();
-            JSONObject jsonResponse = new JSONObject(responseData);
-
-            // Get company name from another endpoint
-            String companyName = getCompanyName(symbol);
-
-            double price = jsonResponse.getDouble("c");
-            double change = jsonResponse.getDouble("d");
-            double changePercent = jsonResponse.getDouble("dp");
-            long volume = jsonResponse.optLong("v", 0);
-
-            if (jsonResponse.has("v") && !jsonResponse.isNull("v")) {
-                volume = jsonResponse.getLong("v");
+            JSONObject json = new JSONObject(response.body().string());
+            if (json.has("code") && json.getInt("code") == 404) {
+                throw new IOException("Invalid response for symbol: " + symbol);
             }
+
+            double price = json.optDouble("close", 0.0);
+            double change = json.optDouble("change", 0.0);
+            double changePercent = json.optDouble("percent_change", 0.0);
+            long volume = (long) json.optDouble("volume", 0);
+            String companyName = json.optString("name", symbol);
 
             return new Stock(symbol, companyName, price, change, changePercent, volume);
         }
     }
 
-    private String getCompanyName(String symbol) throws IOException {
-        String url = BASE_URL + "/stock/profile2?symbol=" + symbol + "&token=" + API_KEY;
+    /**
+     * Fetches historical data for the chart.
+     */
+    public Map<String, Double> getHistoricalData(String symbol, String range) throws IOException {
+        String interval = "1day";
+        String url = BASE_URL + "/time_series?symbol=" + symbol
+                + "&interval=" + interval
+                + "&outputsize=30" // Request 30 days of data for the chart
+                + "&apikey=" + API_KEY;
 
-        Request request = new Request.Builder()
-                .url(url)
-                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                .build();
-
-        try (Response response = client.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                return symbol; // Return symbol as fallback name
-            }
-
-            String responseData = response.body().string();
-            JSONObject jsonResponse = new JSONObject(responseData);
-
-            return jsonResponse.optString("name", symbol);
-        }
-    }
-
-    public List<MarketIndex> getMarketIndices() throws IOException {
-        List<MarketIndex> indices = new ArrayList<>();
-
-        // Major indices
-        String[][] indexData = {
-                {"^GSPC", "S&P 500"},
-                {"^IXIC", "NASDAQ Composite"},
-                {"^DJI", "Dow Jones Industrial Average"}
-        };
-
-        for (String[] index : indexData) {
-            String symbol = index[0];
-            String name = index[1];
-
-            try {
-                Stock indexStock = getStockData(symbol);
-                indices.add(new MarketIndex(symbol, name, indexStock.getPrice(),
-                        indexStock.getChange(), indexStock.getChangePercent()));
-            } catch (IOException e) {
-                System.err.println("Error fetching index data for " + symbol + ": " + e.getMessage());
-            }
-        }
-
-        return indices;
-    }
-
-    /*public Map<String, Double> getHistoricalData(String symbol, String range) throws IOException {
-        waitIfNeeded();
-
-        // Determine timeframe based on range
-        String resolution = "D"; // Daily
-        long to = System.currentTimeMillis() / 1000;
-        long from = to;
-
-        switch (range) {
-            case "1mo":
-                from = to - (30 * 24 * 60 * 60); // 30 days
-                break;
-            case "3mo":
-                from = to - (90 * 24 * 60 * 60); // 90 days
-                break;
-            case "6mo":
-                from = to - (180 * 24 * 60 * 60); // 180 days
-                break;
-            case "1y":
-                from = to - (365 * 24 * 60 * 60); // 365 days
-                break;
-            default:
-                from = to - (30 * 24 * 60 * 60); // Default to 30 days
-        }
-
-        String url = BASE_URL + "/stock/candle?symbol=" + symbol +
-                "&resolution=" + resolution + "&from=" + from + "&to=" + to +
-                "&token=" + API_KEY;
-
-        Request request = new Request.Builder()
-                .url(url)
-                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                .build();
-
-        Map<String, Double> historicalData = new LinkedHashMap<>(); // Use LinkedHashMap to preserve order
+        Request request = new Request.Builder().url(url).build();
+        Map<String, Double> historicalData = new LinkedHashMap<>();
 
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
                 throw new IOException("Unexpected code " + response + " for historical data: " + symbol);
             }
 
-            String responseData = response.body().string();
-            JSONObject jsonResponse = new JSONObject(responseData);
-
-            if (jsonResponse.getString("s").equals("ok")) {
-                JSONArray timestamps = jsonResponse.getJSONArray("t");
-                JSONArray closes = jsonResponse.getJSONArray("c");
-
-                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-
-                for (int i = 0; i < timestamps.length(); i++) {
-                    long timestamp = timestamps.getLong(i);
-                    double close = closes.getDouble(i);
-
-                    String date = dateFormat.format(new Date(timestamp * 1000));
+            JSONObject json = new JSONObject(response.body().string());
+            if (json.getString("status").equals("ok")) {
+                JSONArray values = json.getJSONArray("values");
+                for (int i = 0; i < values.length(); i++) {
+                    JSONObject dayData = values.getJSONObject(i);
+                    String date = dayData.getString("datetime");
+                    double close = Double.parseDouble(dayData.getString("close"));
                     historicalData.put(date, close);
                 }
             }
-
-            return historicalData;
-        }
-    }*/
-
-    public Map<String, Double> getHistoricalData(String symbol, String range) throws IOException {
-        String url = BASE_URL + "/stock/candle?symbol=" + symbol +
-                "&resolution=D&count=30&token=" + API_KEY;
-
-        Request request = new Request.Builder().url(url).build();
-        try (Response response = client.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                throw new IOException("Unexpected code " + response);
-            }
-
-            JSONObject json = new JSONObject(response.body().string());
-
-            Map<String, Double> historicalData = new LinkedHashMap<>();
-
-            if (json.has("t") && json.has("c")) {
-                JSONArray timestamps = json.getJSONArray("t");
-                JSONArray closes = json.getJSONArray("c");
-
-                for (int i = 0; i < timestamps.length(); i++) {
-                    long epoch = timestamps.getLong(i) * 1000; // convert to ms
-                    LocalDate date = Instant.ofEpochMilli(epoch)
-                            .atZone(ZoneId.systemDefault())
-                            .toLocalDate();
-
-                    double close = closes.getDouble(i);
-                    historicalData.put(date.toString(), close);
-                }
-            }
-
             return historicalData;
         }
     }
 
-
-    // Helper method for API rate limiting
-    private void waitIfNeeded() {
-        try {
-            Thread.sleep(1000); // wait 1 second between requests
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
+    // NOTE: Other methods like getMarketIndices would go here if needed.
 }

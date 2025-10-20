@@ -18,7 +18,10 @@ public class PortfolioService {
     }
 
     public void updatePortfolioPrices() {
-        for (Stock stock : portfolio.getStocks()) {
+        // --- THIS IS THE FIX ---
+        // We now loop through holdings, not stocks directly
+        for (Portfolio.Holding holding : portfolio.getHoldings()) {
+            Stock stock = holding.getStock(); // Get the stock from the holding
             try {
                 Stock updatedStock = apiClient.getStockData(stock.getSymbol());
                 stock.setPrice(updatedStock.getPrice());
