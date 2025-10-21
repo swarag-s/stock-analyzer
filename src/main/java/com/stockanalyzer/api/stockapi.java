@@ -1,7 +1,6 @@
 package com.stockanalyzer.api;
 
 import com.stockanalyzer.model.Stock;
-import com.stockanalyzer.model.MarketIndex;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -9,18 +8,16 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
-public class FinnhubAPIClient {
+public class stockapi {
     private static final String BASE_URL = "https://api.twelvedata.com";
-    private static final String API_KEY = "2c5c078817954b249392274165d2e08b"; // Twelve Data API key
+    private static final String API_KEY = "47536e857db343cc8f7e8cc131a49b7a";
 
     private OkHttpClient client;
 
-    public FinnhubAPIClient() {
+    public stockapi() {
         this.client = new OkHttpClient();
     }
 
@@ -79,14 +76,12 @@ public class FinnhubAPIClient {
         }
     }
 
-    /**
-     * Fetches historical data for the chart.
-     */
+    //Fetches historical data for the chart
     public Map<String, Double> getHistoricalData(String symbol, String range) throws IOException {
         String interval = "1day";
         String url = BASE_URL + "/time_series?symbol=" + symbol
                 + "&interval=" + interval
-                + "&outputsize=30" // Request 30 days of data for the chart
+                + "&outputsize=30" //the days of data
                 + "&apikey=" + API_KEY;
 
         Request request = new Request.Builder().url(url).build();
@@ -110,6 +105,5 @@ public class FinnhubAPIClient {
             return historicalData;
         }
     }
-
-    // NOTE: Other methods like getMarketIndices would go here if needed.
 }
+

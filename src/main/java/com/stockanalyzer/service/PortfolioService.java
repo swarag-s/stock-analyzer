@@ -2,7 +2,7 @@ package com.stockanalyzer.service;
 
 import com.stockanalyzer.model.Portfolio;
 import com.stockanalyzer.model.Stock;
-import com.stockanalyzer.api.FinnhubAPIClient;
+import com.stockanalyzer.api.stockapi;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -10,11 +10,11 @@ import java.util.Map;
 
 public class PortfolioService {
     private Portfolio portfolio;
-    private FinnhubAPIClient apiClient;
+    private stockapi apiClient;
 
     public PortfolioService(Portfolio portfolio) {
         this.portfolio = portfolio;
-        this.apiClient = new FinnhubAPIClient();
+        this.apiClient = new stockapi();
     }
 
     public void updatePortfolioPrices() {

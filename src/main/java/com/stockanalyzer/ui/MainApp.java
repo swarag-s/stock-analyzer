@@ -1,14 +1,14 @@
 package com.stockanalyzer.ui;
-import com.stockanalyzer.utils.ChartUtils;
-
 
 import com.stockanalyzer.model.Portfolio;
 import com.stockanalyzer.model.Stock;
 import com.stockanalyzer.service.PortfolioService;
 import com.stockanalyzer.service.AlertService;
 import com.stockanalyzer.service.ReportService;
-import com.stockanalyzer.api.FinnhubAPIClient;
+import com.stockanalyzer.api.stockapi;
 import com.stockanalyzer.observer.StockAlert;
+import com.stockanalyzer.disclaimer.disclaimer;
+
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -34,17 +34,13 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import org.jfree.chart.fx.ChartViewer;
-
-
-
 
 public class MainApp extends Application {
     private Portfolio portfolio;
     private PortfolioService portfolioService;
     private AlertService alertService;
     private ReportService reportService;
-    private FinnhubAPIClient apiClient;
+    private stockapi apiClient;
 
     private ObservableList<Stock> watchList;
     private ObservableList<StockAlert> alertsList;
@@ -54,17 +50,26 @@ public class MainApp extends Application {
     private LineChart<String, Number> priceChart;
     private TextArea reportArea;
     private Label portfolioValueLabel;
-    private ChartViewer priceChartContainer;
-
+    private Button refreshButton;
 
     @Override
     public void start(Stage primaryStage) {
+        if (!disclaimer.showAndWait()) {      //the disclaimer section
+            Platform.exit();
+            return;
+        }
+        //welcome popup
+        Alert welcomeAlert = new Alert(Alert.AlertType.INFORMATION);
+        welcomeAlert.setTitle("Welcome!");
+        welcomeAlert.setHeaderText(null);
+        welcomeAlert.setContentText("Welcome to the Stock Market Analyzer! Let's get started.");
+        welcomeAlert.showAndWait();
         // Initialize services
         portfolio = new Portfolio("My Portfolio");
         portfolioService = new PortfolioService(portfolio);
         alertService = new AlertService();
         reportService = new ReportService(portfolioService);
-        apiClient = new FinnhubAPIClient();
+        apiClient = new stockapi();
 
         watchList = FXCollections.observableArrayList();
         alertsList = FXCollections.observableArrayList();
@@ -94,7 +99,7 @@ public class MainApp extends Application {
         loadSampleData();
 
         Scene scene = new Scene(root, 1200, 700);
-        primaryStage.setTitle("Stock Market Analyzer with Finnhub API");
+        primaryStage.setTitle("Stock Market Analyzer ");
         primaryStage.setScene(scene);
         primaryStage.show();
 
@@ -117,7 +122,7 @@ public class MainApp extends Application {
         addButton.setOnAction(e -> addStockToWatchlist(symbolInput.getText()));
 
         Button refreshButton = new Button("Refresh Data");
-        refreshButton.setOnAction(e -> refreshData());
+        refreshButton.setOnAction(e -> refreshData(true));
 
         Button generateReportButton = new Button("Generate Report");
         generateReportButton.setOnAction(e -> generateReport());
@@ -374,36 +379,63 @@ public class MainApp extends Application {
     }
 
 
-    private void refreshData() {
+    private void refreshData(boolean isManualRefresh) {
+        refreshButton.setDisable(true);
+
         new Thread(() -> {
-            for (Stock stock : watchList) {
+            List<Stock> stocksToRefresh = new ArrayList<>(watchList);
+            List<String> errorMessages = new ArrayList<>();
+
+            for (Stock stock : stocksToRefresh) {
                 try {
                     Stock updatedStock = apiClient.getStockData(stock.getSymbol());
                     if (updatedStock != null) {
                         Platform.runLater(() -> {
-                            int index = watchList.indexOf(stock);
-                            watchList.set(index, updatedStock);
-
-                            // Notify alert service
+                            for (int i = 0; i < watchList.size(); i++) {
+                                if (watchList.get(i).getSymbol().equals(stock.getSymbol())) {
+                                    watchList.set(i, updatedStock);
+                                    break;
+                                }
+                            }
                             alertService.notifyObservers(updatedStock);
                         });
+                    } else {
+                        errorMessages.add("Failed to get updated data for " + stock.getSymbol() + ".");
                     }
-                    // Add delay to avoid rate limiting
-                    Thread.sleep(1000);
+                    Thread.sleep(1200);
                 } catch (Exception e) {
-                    System.err.println("Error updating stock data for " + stock.getSymbol() + ": " + e.getMessage());
+                    // Collect error messages to show to the user
+                    errorMessages.add("Error updating " + stock.getSymbol() + ": " + e.getMessage());
                 }
             }
 
-            // Update portfolio value
-            updatePortfolioValue();
-
-            // Update alerts table
             Platform.runLater(() -> {
+                updatePortfolioValue();
                 alertsList.setAll(alertService.getAlerts());
+
+                // Re-enable the refresh button
+                refreshButton.setDisable(false);
+
+                if (isManualRefresh) {
+                    if (!errorMessages.isEmpty()) {
+                        Alert alert = new Alert(Alert.AlertType.ERROR);
+                        alert.setTitle("Refresh Error");
+                        alert.setHeaderText("Could not update all stock data.");
+                        alert.setContentText(String.join("\n", errorMessages));
+                        alert.showAndWait();
+                    } else {
+                        // Show a success message if there were no errors
+                        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                        alert.setTitle("Success");
+                        alert.setHeaderText(null);
+                        alert.setContentText("Stock data has been successfully refreshed.");
+                        alert.showAndWait();
+                    }
+                }
             });
         }).start();
     }
+
 
     private void updatePortfolioValue() {
         double totalValue = portfolio.getCurrentValue();
@@ -690,7 +722,7 @@ public class MainApp extends Application {
             while (true) {
                 try {
                     Thread.sleep(30000); // Update every 30 seconds
-                    refreshData();
+                    refreshData(false);
                 } catch (InterruptedException e) {
                     break;
                 }
